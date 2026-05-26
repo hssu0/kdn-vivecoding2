@@ -1,0 +1,104 @@
+/* ============================================
+   KDN Vive Dashboard - Base
+   Editorial Navy Design (kdn-main 참고)
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Spacing scale */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --s-10: 128px;
+
+  /* Navy palette */
+  --navy-900: #0A1428;
+  --navy-800: #0F1B33;
+  --navy-700: #1B2A4A;
+  --navy-600: #2A3A5C;
+  --navy-500: #4A5A7C;
+  --navy-400: #7A89AB;
+  --navy-300: #B8C0D6;
+  --navy-200: #DDE2EE;
+  --navy-100: #F0F2F8;
+  --navy-50:  #F8F9FC;
+  --gold:     #3D6FE0;
+
+  /* Status colors */
+  --status-todo:    #7A89AB;
+  --status-doing:   #3D6FE0;
+  --status-done:    #00855A;
+  --status-late:    #C8102E;
+  --status-late-bg: #FFE7EB;
+  --status-doing-bg:#E6EDFB;
+  --status-done-bg: #E3F4EC;
+  --status-todo-bg: #F0F2F8;
+
+  /* Semantic */
+  --ink: var(--navy-800);
+  --ink-soft: var(--navy-500);
+  --ink-surface: var(--navy-800);
+  --ink-surface-hover: var(--navy-900);
+  --line: var(--navy-200);
+  --line-strong: var(--navy-300);
+  --bg-white: #FFFFFF;
+  --bg-soft: var(--navy-50);
+
+  /* Layout */
+  --nav-height: 72px;
+  --container-max: 1280px;
+  --radius: 4px;
+  --radius-md: 12px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 3px rgba(15, 27, 51, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 27, 51, 0.08);
+  --shadow-lg: 0 16px 40px rgba(15, 27, 51, 0.12);
+
+  --hero-bg: linear-gradient(135deg, #1B2A4A 0%, #0F1B33 50%, #0A1428 100%);
+  --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.7;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  background: var(--bg-white);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 { word-break: keep-all; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+.container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+@media (max-width: 768px) {
+  .container { padding: 0 20px; }
+}
