@@ -19,25 +19,29 @@ CREATE TABLE IF NOT EXISTS public.projects (
 CREATE INDEX IF NOT EXISTS idx_projects_created_at
   ON public.projects (created_at ASC);
 
--- ── projects RLS ─────────────────────────────────────────
+-- ── projects RLS (v4: 로그인 사용자만 접근) ──────────────
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "proj_anon_select" ON public.projects;
 DROP POLICY IF EXISTS "proj_anon_insert" ON public.projects;
 DROP POLICY IF EXISTS "proj_anon_update" ON public.projects;
 DROP POLICY IF EXISTS "proj_anon_delete" ON public.projects;
+DROP POLICY IF EXISTS "proj_auth_select" ON public.projects;
+DROP POLICY IF EXISTS "proj_auth_insert" ON public.projects;
+DROP POLICY IF EXISTS "proj_auth_update" ON public.projects;
+DROP POLICY IF EXISTS "proj_auth_delete" ON public.projects;
 
-CREATE POLICY "proj_anon_select" ON public.projects
-  FOR SELECT USING (true);
+CREATE POLICY "proj_auth_select" ON public.projects
+  FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "proj_anon_insert" ON public.projects
-  FOR INSERT WITH CHECK (true);
+CREATE POLICY "proj_auth_insert" ON public.projects
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "proj_anon_update" ON public.projects
-  FOR UPDATE USING (true);
+CREATE POLICY "proj_auth_update" ON public.projects
+  FOR UPDATE USING (auth.role() = 'authenticated');
 
-CREATE POLICY "proj_anon_delete" ON public.projects
-  FOR DELETE USING (true);
+CREATE POLICY "proj_auth_delete" ON public.projects
+  FOR DELETE USING (auth.role() = 'authenticated');
 
 -- ── todos 테이블 ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.todos (
@@ -76,27 +80,32 @@ CREATE INDEX IF NOT EXISTS idx_todos_project_id
 CREATE INDEX IF NOT EXISTS idx_todos_sort_order
   ON public.todos (sort_order ASC NULLS LAST);
 
--- ── todos RLS ────────────────────────────────────────────
--- 인증 없이 anon 키로 CRUD 허용 (팀 공용 일지 용도)
+-- ── todos RLS (v4: 로그인 사용자만 접근) ─────────────────
+-- ※ Supabase Dashboard → Authentication → Providers → Email 활성화 필요
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 
 -- 기존 정책 제거 후 재생성 (재실행 안전)
-DROP POLICY IF EXISTS "anon_select" ON public.todos;
-DROP POLICY IF EXISTS "anon_insert" ON public.todos;
-DROP POLICY IF EXISTS "anon_update" ON public.todos;
-DROP POLICY IF EXISTS "anon_delete" ON public.todos;
+DROP POLICY IF EXISTS "anon_select"  ON public.todos;
+DROP POLICY IF EXISTS "anon_insert"  ON public.todos;
+DROP POLICY IF EXISTS "anon_update"  ON public.todos;
+DROP POLICY IF EXISTS "anon_delete"  ON public.todos;
+DROP POLICY IF EXISTS "auth_select"  ON public.todos;
+DROP POLICY IF EXISTS "auth_insert"  ON public.todos;
+DROP POLICY IF EXISTS "auth_update"  ON public.todos;
+DROP POLICY IF EXISTS "auth_delete"  ON public.todos;
 
-CREATE POLICY "anon_select" ON public.todos
-  FOR SELECT USING (true);
+-- 로그인한 사용자만 접근 허용
+CREATE POLICY "auth_select" ON public.todos
+  FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "anon_insert" ON public.todos
-  FOR INSERT WITH CHECK (true);
+CREATE POLICY "auth_insert" ON public.todos
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "anon_update" ON public.todos
-  FOR UPDATE USING (true);
+CREATE POLICY "auth_update" ON public.todos
+  FOR UPDATE USING (auth.role() = 'authenticated');
 
-CREATE POLICY "anon_delete" ON public.todos
-  FOR DELETE USING (true);
+CREATE POLICY "auth_delete" ON public.todos
+  FOR DELETE USING (auth.role() = 'authenticated');
 
 -- ── 샘플 데이터 (선택) ────────────────────────────────────
 -- 아래 INSERT는 테스트용입니다. 필요 없으면 주석 처리하세요.

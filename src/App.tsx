@@ -1,16 +1,22 @@
 import { useState, useMemo } from 'react';
 import { useTodos }    from './hooks/useTodos';
 import { useProjects } from './hooks/useProjects';
-import Navbar        from './components/Navbar';
-import TodoForm      from './components/TodoForm';
-import FilterTabs    from './components/FilterTabs';
-import ProjectGroup  from './components/ProjectGroup';
-import AllView       from './components/AllView';
-import DateView      from './components/DateView';
-import StatsView     from './components/StatsView';
+import { useAuth }     from './hooks/useAuth';
+import Navbar          from './components/Navbar';
+import LoginPage       from './components/LoginPage';
+import TodoForm        from './components/TodoForm';
+import FilterTabs      from './components/FilterTabs';
+import ProjectGroup    from './components/ProjectGroup';
+import AllView         from './components/AllView';
+import DateView        from './components/DateView';
+import StatsView       from './components/StatsView';
 import type { FilterType, MainTab, ViewTab, AddTodoInput, UpdateTodoInput } from './types/todo';
 
 export default function App() {
+  /* ── 인증 ── */
+  const { user, authLoading, signOut } = useAuth();
+
+  /* ── 데이터 ── */
   const {
     todos, loading, error,
     addTodo, updateTodo, toggleTodo, deleteTodo, reorderTodos,
@@ -19,10 +25,26 @@ export default function App() {
 
   const { projects, addProject, deleteProject } = useProjects();
 
+  /* ── UI 상태 ── */
   const [mainTab,    setMainTab]    = useState<MainTab>('write');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [viewTab,    setViewTab]    = useState<ViewTab>('all');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  /* ── 인증 로딩 화면 ── */
+  if (authLoading) {
+    return (
+      <div className="auth-loading">
+        <div className="auth-loading-inner">
+          <div className="loading-spinner" />
+          <p>인증 확인 중…</p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── 미로그인 → 로그인 페이지 ── */
+  if (!user) return <LoginPage />;
 
   /* ── 동기화 ── */
   const handleSave = () => {
@@ -34,12 +56,12 @@ export default function App() {
   };
 
   /* ── CRUD 래퍼 ── */
-  const handleAdd           = (input: AddTodoInput)                      => { void addTodo(input); };
-  const handleUpdate        = (id: string, changes: UpdateTodoInput)     => { void updateTodo(id, changes); };
-  const handleToggle        = (id: string)                               => { void toggleTodo(id); };
-  const handleDelete        = (id: string)                               => { void deleteTodo(id); };
-  const handleReorder       = (orderedIds: string[])                     => { void reorderTodos(orderedIds); };
-  const handleDeleteProject = (id: string)                               => { void deleteProject(id); };
+  const handleAdd           = (input: AddTodoInput)                  => { void addTodo(input); };
+  const handleUpdate        = (id: string, c: UpdateTodoInput)       => { void updateTodo(id, c); };
+  const handleToggle        = (id: string)                           => { void toggleTodo(id); };
+  const handleDelete        = (id: string)                           => { void deleteTodo(id); };
+  const handleReorder       = (orderedIds: string[])                 => { void reorderTodos(orderedIds); };
+  const handleDeleteProject = (id: string)                           => { void deleteProject(id); };
 
   const handleCreateProject = async (name: string, color: string): Promise<string | null> => {
     const p = await addProject(name, color);
@@ -71,6 +93,8 @@ export default function App() {
         onMainTab={setMainTab}
         viewTab={viewTab}
         onViewTab={setViewTab}
+        userEmail={user.email ?? ''}
+        onSignOut={signOut}
       />
 
       {error && (
