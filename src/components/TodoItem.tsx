@@ -1,20 +1,26 @@
 import { CATEGORY_COLORS, CATEGORY_BG, type TodoItem as TodoItemType } from '../types/todo';
 
 interface Props {
-  item: TodoItemType;
+  item:     TodoItemType;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
+function fmtDate(isoStr: string, dateOnly = false): string {
+  const d = dateOnly
+    ? new Date(isoStr + 'T00:00:00')
+    : new Date(isoStr);
+  return d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
+}
+
 export default function TodoItem({ item, onToggle, onDelete }: Props) {
-  const dateStr = new Date(item.createdAt).toLocaleDateString('ko-KR', {
-    month: '2-digit',
-    day: '2-digit',
-  });
+  const today     = new Date().toISOString().split('T')[0];
+  const isOverdue = !!item.dueDate && !item.completed && item.dueDate < today;
 
   return (
     <div className={`todo-item${item.completed ? ' completed' : ''}`}>
-      {/* 체크박스 */}
+
+      {/* ── 체크박스 ── */}
       <label className="todo-checkbox-wrapper" title={item.completed ? '완료 취소' : '완료 처리'}>
         <input
           type="checkbox"
@@ -27,24 +33,45 @@ export default function TodoItem({ item, onToggle, onDelete }: Props) {
         </span>
       </label>
 
-      {/* 내용 */}
+      {/* ── 내용 영역 ── */}
       <div className="todo-content">
-        <span className="todo-title">{item.title}</span>
-        <span
-          className="todo-category"
-          style={{
-            color: CATEGORY_COLORS[item.category],
-            backgroundColor: CATEGORY_BG[item.category],
-          }}
-        >
-          {item.category}
-        </span>
+
+        {/* 제목 + 카테고리 배지 */}
+        <div className="todo-main">
+          <span className="todo-title">{item.title}</span>
+          <span
+            className="todo-category"
+            style={{
+              color:           CATEGORY_COLORS[item.category],
+              backgroundColor: CATEGORY_BG[item.category],
+            }}
+          >
+            {item.category}
+          </span>
+        </div>
+
+        {/* 세부 내용 */}
+        {item.description && (
+          <p className="todo-description">{item.description}</p>
+        )}
+
+        {/* 날짜 행 */}
+        <div className="todo-dates">
+          <span className="todo-created-date">
+            <i className="fa-regular fa-clock" />
+            작성 {fmtDate(item.createdAt)}
+          </span>
+          {item.dueDate && (
+            <span className={`todo-due-date${isOverdue ? ' overdue' : ''}`}>
+              <i className="fa-regular fa-calendar-xmark" />
+              마감 {fmtDate(item.dueDate, true)}
+              {isOverdue && <span className="overdue-tag">지연</span>}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* 날짜 */}
-      <span className="todo-date">{dateStr}</span>
-
-      {/* 삭제 버튼 */}
+      {/* ── 삭제 버튼 ── */}
       <button
         className="todo-delete"
         onClick={() => onDelete(item.id)}

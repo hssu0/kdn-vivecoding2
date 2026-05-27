@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl     = import.meta.env.VITE_SUPABASE_URL  as string;
+const supabaseUrl     = import.meta.env.VITE_SUPABASE_URL     as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -11,13 +11,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// ── DB 행(row) 타입 ───────────────────────────────────────
-// scripts/schema.sql 의 todos 테이블과 1:1 대응
+// ── DB Row 타입 (scripts/schema.sql 과 1:1 대응) ─────────
 export interface DbTodo {
   id:           string;
   title:        string;
+  description:  string | null;
   completed:    boolean;
   category:     string;
-  created_at:   string;   // TIMESTAMPTZ → ISO string
+  project_id:   string | null;
+  due_date:     string | null;   // DATE → YYYY-MM-DD
+  created_at:   string;
   completed_at: string | null;
+}
+
+export interface DbProject {
+  id:         string;
+  name:       string;
+  color:      string;
+  created_at: string;
 }

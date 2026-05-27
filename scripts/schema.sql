@@ -1,10 +1,43 @@
 -- ============================================================
---  KDN 업무 일지 관리 — Supabase 데이터베이스 스키마
+--  KDN 업무 일지 관리 — Supabase 데이터베이스 스키마 v2
 --  실행: Supabase Dashboard → SQL Editor → New query → Run
+--  ※ 재실행 안전 (IF NOT EXISTS / IF NOT EXISTS 사용)
 -- ============================================================
 
 -- UUID 확장 (Supabase 기본 활성화, 혹시 모를 경우 대비)
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ── projects 테이블 (NEW v2) ──────────────────────────────
+CREATE TABLE IF NOT EXISTS public.projects (
+  id         UUID        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  name       TEXT        NOT NULL,
+  color      TEXT        NOT NULL DEFAULT '#3D6FE0',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 인덱스: 생성일 오름차순 (목록 표시 순서)
+CREATE INDEX IF NOT EXISTS idx_projects_created_at
+  ON public.projects (created_at ASC);
+
+-- ── projects RLS ─────────────────────────────────────────
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "proj_anon_select" ON public.projects;
+DROP POLICY IF EXISTS "proj_anon_insert" ON public.projects;
+DROP POLICY IF EXISTS "proj_anon_update" ON public.projects;
+DROP POLICY IF EXISTS "proj_anon_delete" ON public.projects;
+
+CREATE POLICY "proj_anon_select" ON public.projects
+  FOR SELECT USING (true);
+
+CREATE POLICY "proj_anon_insert" ON public.projects
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "proj_anon_update" ON public.projects
+  FOR UPDATE USING (true);
+
+CREATE POLICY "proj_anon_delete" ON public.projects
+  FOR DELETE USING (true);
 
 -- ── todos 테이블 ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.todos (
@@ -17,6 +50,12 @@ CREATE TABLE IF NOT EXISTS public.todos (
   completed_at TIMESTAMPTZ
 );
 
+-- v2 컬럼 추가 (기존 DB에 이미 테이블이 있을 경우에도 안전하게 추가)
+ALTER TABLE public.todos
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS project_id  UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS due_date    DATE;
+
 -- 인덱스: 생성일 역순 정렬 최적화
 CREATE INDEX IF NOT EXISTS idx_todos_created_at
   ON public.todos (created_at DESC);
@@ -25,7 +64,11 @@ CREATE INDEX IF NOT EXISTS idx_todos_created_at
 CREATE INDEX IF NOT EXISTS idx_todos_category
   ON public.todos (category);
 
--- ── Row Level Security ────────────────────────────────────
+-- 인덱스: 프로젝트별 조회 최적화 (NEW v2)
+CREATE INDEX IF NOT EXISTS idx_todos_project_id
+  ON public.todos (project_id);
+
+-- ── todos RLS ────────────────────────────────────────────
 -- 인증 없이 anon 키로 CRUD 허용 (팀 공용 일지 용도)
 ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
 
@@ -50,6 +93,10 @@ CREATE POLICY "anon_delete" ON public.todos
 -- ── 샘플 데이터 (선택) ────────────────────────────────────
 -- 아래 INSERT는 테스트용입니다. 필요 없으면 주석 처리하세요.
 /*
+INSERT INTO public.projects (name, color) VALUES
+  ('KDN 바이브코딩', '#3D6FE0'),
+  ('미터링 시스템',  '#059669');
+
 INSERT INTO public.todos (title, category, completed) VALUES
   ('Supabase 연동 테스트',      '개발',  false),
   ('스키마 적용 확인',          '개발',  true),

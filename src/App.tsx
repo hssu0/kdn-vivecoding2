@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
-import { useTodos } from './hooks/useTodos';
-import Navbar     from './components/Navbar';
-import TodoForm   from './components/TodoForm';
-import FilterTabs from './components/FilterTabs';
-import TodoItem   from './components/TodoItem';
-import AllView    from './components/AllView';
-import DateView   from './components/DateView';
-import StatsView  from './components/StatsView';
-import type { FilterType, MainTab, ViewTab, Category } from './types/todo';
+import { useTodos }    from './hooks/useTodos';
+import { useProjects } from './hooks/useProjects';
+import Navbar        from './components/Navbar';
+import TodoForm      from './components/TodoForm';
+import FilterTabs    from './components/FilterTabs';
+import ProjectGroup  from './components/ProjectGroup';
+import AllView       from './components/AllView';
+import DateView      from './components/DateView';
+import StatsView     from './components/StatsView';
+import type { FilterType, MainTab, ViewTab, AddTodoInput } from './types/todo';
 
 const VIEW_TABS: { value: ViewTab; icon: string; text: string }[] = [
   { value: 'all',   icon: 'fa-solid fa-list',              text: '전체 목록' },
@@ -18,27 +19,35 @@ const VIEW_TABS: { value: ViewTab; icon: string; text: string }[] = [
 export default function App() {
   const {
     todos, loading, error,
-    addTodo, toggleTodo, deleteTodo, refetch,
+    addTodo, toggleTodo, deleteTodo, refetch: refetchTodos,
   } = useTodos();
+
+  const { projects, addProject, deleteProject } = useProjects();
 
   const [mainTab,    setMainTab]    = useState<MainTab>('write');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [viewTab,    setViewTab]    = useState<ViewTab>('all');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-  /* ── 저장(새로고침) ── */
+  /* ── 동기화 ── */
   const handleSave = () => {
     setSaveStatus('saving');
-    void refetch().then(() => {
+    void refetchTodos().then(() => {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2200);
     });
   };
 
-  /* ── CRUD 래퍼 (void 반환) ── */
-  const handleAdd    = (title: string, category: Category) => { void addTodo(title, category); };
-  const handleToggle = (id: string) => { void toggleTodo(id); };
-  const handleDelete = (id: string) => { void deleteTodo(id); };
+  /* ── CRUD 래퍼 ── */
+  const handleAdd           = (input: AddTodoInput) => { void addTodo(input); };
+  const handleToggle        = (id: string) => { void toggleTodo(id); };
+  const handleDelete        = (id: string) => { void deleteTodo(id); };
+  const handleDeleteProject = (id: string) => { void deleteProject(id); };
+
+  const handleCreateProject = async (name: string, color: string): Promise<string | null> => {
+    const p = await addProject(name, color);
+    return p?.id ?? null;
+  };
 
   /* ── 필터 ── */
   const filteredTodos = useMemo(() => {
@@ -47,18 +56,18 @@ export default function App() {
     return todos;
   }, [todos, filterType]);
 
+  /* 프로젝트별 할 일 분류 */
+  const unassignedTodos = filteredTodos.filter(t => !t.projectId);
+  const showUnassigned  = unassignedTodos.length > 0 || projects.length === 0;
+
   const emptyMsg =
     filterType === 'active'    ? '진행중인 할 일이 없습니다.'  :
     filterType === 'completed' ? '완료된 할 일이 없습니다.'    :
-    '할 일을 위에서 추가해보세요!';
+    '위에서 할 일을 추가해보세요!';
 
   return (
     <>
-      <Navbar
-        onSave={handleSave}
-        saveStatus={saveStatus}
-        connected={!error}
-      />
+      <Navbar onSave={handleSave} saveStatus={saveStatus} connected={!error} />
 
       {/* ── 에러 배너 ── */}
       {error && (
@@ -90,7 +99,7 @@ export default function App() {
       <main className="main-content">
         <div className="container">
 
-          {/* ── 초기 로딩 ── */}
+          {/* ── 로딩 ── */}
           {loading && (
             <div className="loading-screen">
               <div className="loading-spinner" />
@@ -98,20 +107,26 @@ export default function App() {
             </div>
           )}
 
-          {/* ── 일지 작성 ── */}
+          {/* ────────── 일지 작성 ────────── */}
           {!loading && mainTab === 'write' && (
             <div className="write-section">
 
+              {/* 할 일 추가 폼 */}
               <div className="section-card">
                 <div className="card-header">
                   <h2><i className="fa-solid fa-circle-plus" /> 할 일 추가</h2>
                 </div>
-                <TodoForm onAdd={handleAdd} />
+                <TodoForm
+                  onAdd={handleAdd}
+                  projects={projects}
+                  onCreateProject={handleCreateProject}
+                />
               </div>
 
+              {/* 할 일 목록 (프로젝트 그룹) */}
               <div className="section-card">
                 <div className="card-header">
-                  <h2><i className="fa-solid fa-list-ul" /> 할 일 목록</h2>
+                  <h2><i className="fa-solid fa-folder-tree" /> 할 일 목록</h2>
                   <span className="total-count">{todos.length}건</span>
                 </div>
 
@@ -121,31 +136,43 @@ export default function App() {
                   onFilterChange={setFilterType}
                 />
 
-                <div className="todo-list">
+                <div className="project-list-wrapper">
                   {filteredTodos.length === 0 ? (
                     <div className="empty-state">
                       <i className="fa-solid fa-clipboard-list" />
                       <p>{emptyMsg}</p>
                     </div>
                   ) : (
-                    filteredTodos.map(todo => (
-                      <TodoItem
-                        key={todo.id}
-                        item={todo}
-                        onToggle={handleToggle}
-                        onDelete={handleDelete}
-                      />
-                    ))
+                    <>
+                      {projects.map(project => (
+                        <ProjectGroup
+                          key={project.id}
+                          project={project}
+                          todos={filteredTodos.filter(t => t.projectId === project.id)}
+                          onToggle={handleToggle}
+                          onDelete={handleDelete}
+                          onDeleteProject={handleDeleteProject}
+                        />
+                      ))}
+                      {showUnassigned && (
+                        <ProjectGroup
+                          project={null}
+                          todos={unassignedTodos}
+                          onToggle={handleToggle}
+                          onDelete={handleDelete}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               </div>
+
             </div>
           )}
 
-          {/* ── 일지 조회 ── */}
+          {/* ────────── 일지 조회 ────────── */}
           {!loading && mainTab === 'view' && (
             <div className="view-section">
-
               <div className="view-tabs-bar">
                 {VIEW_TABS.map(({ value, icon, text }) => (
                   <button
