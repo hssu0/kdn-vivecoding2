@@ -1,9 +1,11 @@
 import { CATEGORY_COLORS, CATEGORY_BG, type TodoItem as TodoItemType } from '../types/todo';
 
 interface Props {
-  item:     TodoItemType;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
+  item:          TodoItemType;
+  onToggle:      (id: string) => void;
+  onDelete:      (id: string) => void;
+  projectName?:  string;
+  projectColor?: string;
 }
 
 function fmtDate(isoStr: string, dateOnly = false): string {
@@ -13,7 +15,7 @@ function fmtDate(isoStr: string, dateOnly = false): string {
   return d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
 }
 
-export default function TodoItem({ item, onToggle, onDelete }: Props) {
+export default function TodoItem({ item, onToggle, onDelete, projectName, projectColor }: Props) {
   const today     = new Date().toISOString().split('T')[0];
   const isOverdue = !!item.dueDate && !item.completed && item.dueDate < today;
 
@@ -36,7 +38,7 @@ export default function TodoItem({ item, onToggle, onDelete }: Props) {
       {/* ── 내용 영역 ── */}
       <div className="todo-content">
 
-        {/* 제목 + 카테고리 배지 */}
+        {/* 제목 + 카테고리 + 프로젝트 배지 */}
         <div className="todo-main">
           <span className="todo-title">{item.title}</span>
           <span
@@ -48,6 +50,17 @@ export default function TodoItem({ item, onToggle, onDelete }: Props) {
           >
             {item.category}
           </span>
+          {projectName && (
+            <span
+              className="todo-project-badge"
+              style={{
+                borderColor: projectColor ?? '#B8C0D6',
+                color:       projectColor ?? '#4A5A7C',
+              }}
+            >
+              <i className="fa-solid fa-folder" /> {projectName}
+            </span>
+          )}
         </div>
 
         {/* 세부 내용 */}

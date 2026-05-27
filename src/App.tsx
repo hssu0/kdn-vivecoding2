@@ -10,12 +10,6 @@ import DateView      from './components/DateView';
 import StatsView     from './components/StatsView';
 import type { FilterType, MainTab, ViewTab, AddTodoInput } from './types/todo';
 
-const VIEW_TABS: { value: ViewTab; icon: string; text: string }[] = [
-  { value: 'all',   icon: 'fa-solid fa-list',              text: '전체 목록' },
-  { value: 'date',  icon: 'fa-regular fa-calendar-days',   text: '날짜별 조회' },
-  { value: 'stats', icon: 'fa-solid fa-chart-pie',         text: '통계' },
-];
-
 export default function App() {
   const {
     todos, loading, error,
@@ -67,7 +61,15 @@ export default function App() {
 
   return (
     <>
-      <Navbar onSave={handleSave} saveStatus={saveStatus} connected={!error} />
+      <Navbar
+        onSave={handleSave}
+        saveStatus={saveStatus}
+        connected={!error}
+        mainTab={mainTab}
+        onMainTab={setMainTab}
+        viewTab={viewTab}
+        onViewTab={setViewTab}
+      />
 
       {/* ── 에러 배너 ── */}
       {error && (
@@ -77,24 +79,6 @@ export default function App() {
           <button className="error-retry" onClick={handleSave}>재시도</button>
         </div>
       )}
-
-      {/* ── 메인 탭 ── */}
-      <div className="main-tabs">
-        <div className="container">
-          <button
-            className={`main-tab${mainTab === 'write' ? ' active' : ''}`}
-            onClick={() => setMainTab('write')}
-          >
-            <i className="fa-solid fa-pen-to-square" /> 일지 작성
-          </button>
-          <button
-            className={`main-tab${mainTab === 'view' ? ' active' : ''}`}
-            onClick={() => setMainTab('view')}
-          >
-            <i className="fa-solid fa-list-check" /> 일지 조회
-          </button>
-        </div>
-      </div>
 
       <main className="main-content">
         <div className="container">
@@ -111,7 +95,6 @@ export default function App() {
           {!loading && mainTab === 'write' && (
             <div className="write-section">
 
-              {/* 할 일 추가 폼 */}
               <div className="section-card">
                 <div className="card-header">
                   <h2><i className="fa-solid fa-circle-plus" /> 할 일 추가</h2>
@@ -123,19 +106,16 @@ export default function App() {
                 />
               </div>
 
-              {/* 할 일 목록 (프로젝트 그룹) */}
               <div className="section-card">
                 <div className="card-header">
                   <h2><i className="fa-solid fa-folder-tree" /> 할 일 목록</h2>
                   <span className="total-count">{todos.length}건</span>
                 </div>
-
                 <FilterTabs
                   filter={filterType}
                   todos={todos}
                   onFilterChange={setFilterType}
                 />
-
                 <div className="project-list-wrapper">
                   {filteredTodos.length === 0 ? (
                     <div className="empty-state">
@@ -173,22 +153,10 @@ export default function App() {
           {/* ────────── 일지 조회 ────────── */}
           {!loading && mainTab === 'view' && (
             <div className="view-section">
-              <div className="view-tabs-bar">
-                {VIEW_TABS.map(({ value, icon, text }) => (
-                  <button
-                    key={value}
-                    className={`view-tab${viewTab === value ? ' active' : ''}`}
-                    onClick={() => setViewTab(value)}
-                  >
-                    <i className={icon} /> {text}
-                  </button>
-                ))}
-              </div>
-
               <div className="section-card">
-                {viewTab === 'all'   && <AllView   todos={todos} onToggle={handleToggle} onDelete={handleDelete} />}
-                {viewTab === 'date'  && <DateView  todos={todos} onToggle={handleToggle} onDelete={handleDelete} />}
-                {viewTab === 'stats' && <StatsView todos={todos} />}
+                {viewTab === 'all'   && <AllView   todos={todos} projects={projects} onToggle={handleToggle} onDelete={handleDelete} />}
+                {viewTab === 'date'  && <DateView  todos={todos} projects={projects} onToggle={handleToggle} onDelete={handleDelete} />}
+                {viewTab === 'stats' && <StatsView todos={todos} projects={projects} />}
               </div>
             </div>
           )}
