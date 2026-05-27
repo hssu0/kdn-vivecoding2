@@ -1,23 +1,32 @@
-interface NavbarProps {
-  today: string
+interface Props {
+  onSave: () => void;
+  saveStatus: 'idle' | 'saving' | 'saved';
 }
 
-export default function Navbar({ today }: NavbarProps) {
+export default function Navbar({ onSave, saveStatus }: Props) {
   return (
-    <header className="navbar">
-      <div className="container navbar-inner">
-        <div className="brand">
-          <div className="brand-mark">KDN</div>
-          <div>
-            <div className="brand-sub">Vibe Coding</div>
-            <div>Dev Schedule Dashboard</div>
-          </div>
-        </div>
-        <div className="nav-meta">
-          <span className="pill"><i className="fa-regular fa-calendar"></i>{today}</span>
-          <span className="pill"><i className="fa-solid fa-user"></i>허수영 · 미터링시스템부</span>
+    <nav className="navbar">
+      <div className="nav-brand">
+        <i className="fa-solid fa-book-open-reader nav-icon" />
+        <div className="nav-titles">
+          <span className="nav-title">업무 일지</span>
+          <span className="nav-subtitle">KDN 미터링시스템부</span>
         </div>
       </div>
-    </header>
-  )
+
+      <div className="nav-actions">
+        <button
+          className={`btn-save ${saveStatus !== 'idle' ? saveStatus : ''}`}
+          onClick={onSave}
+          title="localStorage에 저장"
+        >
+          {saveStatus === 'saved' ? (
+            <><i className="fa-solid fa-check" /> 저장됨</>
+          ) : (
+            <><i className="fa-solid fa-floppy-disk" /> 저장</>
+          )}
+        </button>
+      </div>
+    </nav>
+  );
 }
