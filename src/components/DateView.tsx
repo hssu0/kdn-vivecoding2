@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { TodoItem, Project } from '../types/todo';
+import type { TodoItem, Project, UpdateTodoInput } from '../types/todo';
 import TodoItemComp from './TodoItem';
 
 interface Props {
@@ -7,9 +7,10 @@ interface Props {
   projects: Project[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit:   (id: string, changes: UpdateTodoInput) => void;
 }
 
-export default function DateView({ todos, projects, onToggle, onDelete }: Props) {
+export default function DateView({ todos, projects, onToggle, onDelete, onEdit }: Props) {
   const today   = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
@@ -45,9 +46,7 @@ export default function DateView({ todos, projects, onToggle, onDelete }: Props)
               onChange={e => setFrom(e.target.value)}
             />
           </label>
-
           <span className="date-separator">~</span>
-
           <label className="date-label">
             <span><i className="fa-regular fa-calendar-plus" /> 종료일</span>
             <input
@@ -60,7 +59,6 @@ export default function DateView({ todos, projects, onToggle, onDelete }: Props)
           </label>
         </div>
 
-        {/* 프로젝트 필터 */}
         <div className="date-filter-project">
           <i className="fa-solid fa-folder-tree" />
           <select
@@ -98,6 +96,7 @@ export default function DateView({ todos, projects, onToggle, onDelete }: Props)
                 item={todo}
                 onToggle={onToggle}
                 onDelete={onDelete}
+                onEdit={onEdit}
                 projectName={proj?.name}
                 projectColor={proj?.color}
               />

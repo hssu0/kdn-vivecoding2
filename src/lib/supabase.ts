@@ -20,6 +20,7 @@ export interface DbTodo {
   category:     string;
   project_id:   string | null;
   due_date:     string | null;   // DATE → YYYY-MM-DD
+  sort_order:   number | null;   // 표시 순서 (NULL = 미설정)
   created_at:   string;
   completed_at: string | null;
 }

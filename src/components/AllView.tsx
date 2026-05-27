@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { TodoItem, Project } from '../types/todo';
+import type { TodoItem, Project, UpdateTodoInput } from '../types/todo';
 import TodoItemComp from './TodoItem';
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
   projects: Project[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit:   (id: string, changes: UpdateTodoInput) => void;
 }
 
 function groupByDate(items: TodoItem[]): Record<string, TodoItem[]> {
@@ -24,7 +25,7 @@ function formatGroupDate(dateStr: string): string {
   });
 }
 
-export default function AllView({ todos, projects, onToggle, onDelete }: Props) {
+export default function AllView({ todos, projects, onToggle, onDelete, onEdit }: Props) {
   const [projectFilter, setProjectFilter] = useState('__all__');
 
   const projectMap = new Map(projects.map(p => [p.id, p]));
@@ -89,6 +90,7 @@ export default function AllView({ todos, projects, onToggle, onDelete }: Props) 
                   item={todo}
                   onToggle={onToggle}
                   onDelete={onDelete}
+                  onEdit={onEdit}
                   projectName={proj?.name}
                   projectColor={proj?.color}
                 />

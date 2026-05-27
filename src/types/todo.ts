@@ -1,5 +1,5 @@
 // ============================================================
-//  KDN 업무 일지 — 공통 타입 정의 v2
+//  KDN 업무 일지 — 공통 타입 정의 v3
 // ============================================================
 
 export type Category   = '업무' | '개발' | '미팅' | '교육' | '기타';
@@ -16,6 +16,7 @@ export interface TodoItem {
   category:     Category;
   projectId?:   string;       // projects.id FK
   dueDate?:     string;       // YYYY-MM-DD
+  sortOrder:    number;       // 표시 순서 (드래그 정렬)
   createdAt:    string;       // ISO datetime
   completedAt?: string;       // ISO datetime
 }
@@ -26,6 +27,14 @@ export interface AddTodoInput {
   description?: string;
   category:     Category;
   projectId?:   string;
+  dueDate?:     string;
+}
+
+// 수정 시 입력 데이터
+export interface UpdateTodoInput {
+  title:        string;
+  description?: string;
+  category:     Category;
   dueDate?:     string;
 }
 

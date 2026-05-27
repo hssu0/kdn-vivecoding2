@@ -8,12 +8,13 @@ import ProjectGroup  from './components/ProjectGroup';
 import AllView       from './components/AllView';
 import DateView      from './components/DateView';
 import StatsView     from './components/StatsView';
-import type { FilterType, MainTab, ViewTab, AddTodoInput } from './types/todo';
+import type { FilterType, MainTab, ViewTab, AddTodoInput, UpdateTodoInput } from './types/todo';
 
 export default function App() {
   const {
     todos, loading, error,
-    addTodo, toggleTodo, deleteTodo, refetch: refetchTodos,
+    addTodo, updateTodo, toggleTodo, deleteTodo, reorderTodos,
+    refetch: refetchTodos,
   } = useTodos();
 
   const { projects, addProject, deleteProject } = useProjects();
@@ -33,10 +34,12 @@ export default function App() {
   };
 
   /* ── CRUD 래퍼 ── */
-  const handleAdd           = (input: AddTodoInput) => { void addTodo(input); };
-  const handleToggle        = (id: string) => { void toggleTodo(id); };
-  const handleDelete        = (id: string) => { void deleteTodo(id); };
-  const handleDeleteProject = (id: string) => { void deleteProject(id); };
+  const handleAdd           = (input: AddTodoInput)                      => { void addTodo(input); };
+  const handleUpdate        = (id: string, changes: UpdateTodoInput)     => { void updateTodo(id, changes); };
+  const handleToggle        = (id: string)                               => { void toggleTodo(id); };
+  const handleDelete        = (id: string)                               => { void deleteTodo(id); };
+  const handleReorder       = (orderedIds: string[])                     => { void reorderTodos(orderedIds); };
+  const handleDeleteProject = (id: string)                               => { void deleteProject(id); };
 
   const handleCreateProject = async (name: string, color: string): Promise<string | null> => {
     const p = await addProject(name, color);
@@ -50,7 +53,6 @@ export default function App() {
     return todos;
   }, [todos, filterType]);
 
-  /* 프로젝트별 할 일 분류 */
   const unassignedTodos = filteredTodos.filter(t => !t.projectId);
   const showUnassigned  = unassignedTodos.length > 0 || projects.length === 0;
 
@@ -71,7 +73,6 @@ export default function App() {
         onViewTab={setViewTab}
       />
 
-      {/* ── 에러 배너 ── */}
       {error && (
         <div className="error-banner">
           <i className="fa-solid fa-circle-exclamation" />
@@ -83,7 +84,6 @@ export default function App() {
       <main className="main-content">
         <div className="container">
 
-          {/* ── 로딩 ── */}
           {loading && (
             <div className="loading-screen">
               <div className="loading-spinner" />
@@ -131,7 +131,9 @@ export default function App() {
                           todos={filteredTodos.filter(t => t.projectId === project.id)}
                           onToggle={handleToggle}
                           onDelete={handleDelete}
+                          onEdit={handleUpdate}
                           onDeleteProject={handleDeleteProject}
+                          onReorder={handleReorder}
                         />
                       ))}
                       {showUnassigned && (
@@ -140,6 +142,8 @@ export default function App() {
                           todos={unassignedTodos}
                           onToggle={handleToggle}
                           onDelete={handleDelete}
+                          onEdit={handleUpdate}
+                          onReorder={handleReorder}
                         />
                       )}
                     </>
@@ -154,8 +158,8 @@ export default function App() {
           {!loading && mainTab === 'view' && (
             <div className="view-section">
               <div className="section-card">
-                {viewTab === 'all'   && <AllView   todos={todos} projects={projects} onToggle={handleToggle} onDelete={handleDelete} />}
-                {viewTab === 'date'  && <DateView  todos={todos} projects={projects} onToggle={handleToggle} onDelete={handleDelete} />}
+                {viewTab === 'all'   && <AllView   todos={todos} projects={projects} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} />}
+                {viewTab === 'date'  && <DateView  todos={todos} projects={projects} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleUpdate} />}
                 {viewTab === 'stats' && <StatsView todos={todos} projects={projects} />}
               </div>
             </div>

@@ -56,6 +56,10 @@ ALTER TABLE public.todos
   ADD COLUMN IF NOT EXISTS project_id  UUID REFERENCES public.projects(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS due_date    DATE;
 
+-- v3 컬럼 추가: 드래그-앤-드롭 순서 저장
+ALTER TABLE public.todos
+  ADD COLUMN IF NOT EXISTS sort_order  INTEGER DEFAULT NULL;
+
 -- 인덱스: 생성일 역순 정렬 최적화
 CREATE INDEX IF NOT EXISTS idx_todos_created_at
   ON public.todos (created_at DESC);
@@ -67,6 +71,10 @@ CREATE INDEX IF NOT EXISTS idx_todos_category
 -- 인덱스: 프로젝트별 조회 최적화 (NEW v2)
 CREATE INDEX IF NOT EXISTS idx_todos_project_id
   ON public.todos (project_id);
+
+-- 인덱스: 표시 순서 정렬 최적화 (NEW v3)
+CREATE INDEX IF NOT EXISTS idx_todos_sort_order
+  ON public.todos (sort_order ASC NULLS LAST);
 
 -- ── todos RLS ────────────────────────────────────────────
 -- 인증 없이 anon 키로 CRUD 허용 (팀 공용 일지 용도)
