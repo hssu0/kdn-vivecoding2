@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { useTodos }    from './hooks/useTodos';
 import { useProjects } from './hooks/useProjects';
 import { useAuth }     from './hooks/useAuth';
@@ -12,26 +13,14 @@ import DateView        from './components/DateView';
 import StatsView       from './components/StatsView';
 import type { FilterType, MainTab, ViewTab, AddTodoInput, UpdateTodoInput } from './types/todo';
 
+/* ──────────────────────────────────────────────────────────
+   AuthGate — 인증 상태에 따라 화면 분기
+   (훅 수가 일정해야 하므로 App에서 분리)
+────────────────────────────────────────────────────────── */
 export default function App() {
-  /* ── 인증 ── */
   const { user, authLoading, signOut } = useAuth();
 
-  /* ── 데이터 ── */
-  const {
-    todos, loading, error,
-    addTodo, updateTodo, toggleTodo, deleteTodo, reorderTodos,
-    refetch: refetchTodos,
-  } = useTodos();
-
-  const { projects, addProject, deleteProject } = useProjects();
-
-  /* ── UI 상태 ── */
-  const [mainTab,    setMainTab]    = useState<MainTab>('write');
-  const [filterType, setFilterType] = useState<FilterType>('all');
-  const [viewTab,    setViewTab]    = useState<ViewTab>('all');
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-
-  /* ── 인증 로딩 화면 ── */
+  /* 인증 확인 중 */
   if (authLoading) {
     return (
       <div className="auth-loading">
@@ -43,32 +32,31 @@ export default function App() {
     );
   }
 
-  /* ── 미로그인 → 로그인 페이지 ── */
+  /* 미로그인 → 로그인 페이지 */
   if (!user) return <LoginPage />;
 
-  /* ── 동기화 ── */
-  const handleSave = () => {
-    setSaveStatus('saving');
-    void refetchTodos().then(() => {
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2200);
-    });
-  };
+  /* 로그인 완료 → 메인 앱 */
+  return <MainApp user={user} onSignOut={signOut} />;
+}
 
-  /* ── CRUD 래퍼 ── */
-  const handleAdd           = (input: AddTodoInput)                  => { void addTodo(input); };
-  const handleUpdate        = (id: string, c: UpdateTodoInput)       => { void updateTodo(id, c); };
-  const handleToggle        = (id: string)                           => { void toggleTodo(id); };
-  const handleDelete        = (id: string)                           => { void deleteTodo(id); };
-  const handleReorder       = (orderedIds: string[])                 => { void reorderTodos(orderedIds); };
-  const handleDeleteProject = (id: string)                           => { void deleteProject(id); };
+/* ──────────────────────────────────────────────────────────
+   MainApp — 실제 앱 (user 보장됨, 훅 조기 리턴 없음)
+────────────────────────────────────────────────────────── */
+function MainApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
+  const {
+    todos, loading, error,
+    addTodo, updateTodo, toggleTodo, deleteTodo, reorderTodos,
+    refetch: refetchTodos,
+  } = useTodos();
 
-  const handleCreateProject = async (name: string, color: string): Promise<string | null> => {
-    const p = await addProject(name, color);
-    return p?.id ?? null;
-  };
+  const { projects, addProject, deleteProject } = useProjects();
 
-  /* ── 필터 ── */
+  const [mainTab,    setMainTab]    = useState<MainTab>('write');
+  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [viewTab,    setViewTab]    = useState<ViewTab>('all');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  /* ── 필터 (훅은 리턴 앞에) ── */
   const filteredTodos = useMemo(() => {
     if (filterType === 'active')    return todos.filter(t => !t.completed);
     if (filterType === 'completed') return todos.filter(t => t.completed);
@@ -83,6 +71,28 @@ export default function App() {
     filterType === 'completed' ? '완료된 할 일이 없습니다.'    :
     '위에서 할 일을 추가해보세요!';
 
+  /* ── 동기화 ── */
+  const handleSave = () => {
+    setSaveStatus('saving');
+    void refetchTodos().then(() => {
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2200);
+    });
+  };
+
+  /* ── CRUD 래퍼 ── */
+  const handleAdd           = (input: AddTodoInput)              => { void addTodo(input); };
+  const handleUpdate        = (id: string, c: UpdateTodoInput)   => { void updateTodo(id, c); };
+  const handleToggle        = (id: string)                       => { void toggleTodo(id); };
+  const handleDelete        = (id: string)                       => { void deleteTodo(id); };
+  const handleReorder       = (orderedIds: string[])             => { void reorderTodos(orderedIds); };
+  const handleDeleteProject = (id: string)                       => { void deleteProject(id); };
+
+  const handleCreateProject = async (name: string, color: string): Promise<string | null> => {
+    const p = await addProject(name, color);
+    return p?.id ?? null;
+  };
+
   return (
     <>
       <Navbar
@@ -94,7 +104,7 @@ export default function App() {
         viewTab={viewTab}
         onViewTab={setViewTab}
         userEmail={user.email ?? ''}
-        onSignOut={signOut}
+        onSignOut={onSignOut}
       />
 
       {error && (
