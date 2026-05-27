@@ -1,9 +1,10 @@
 interface Props {
-  onSave: () => void;
+  onSave:     () => void;
   saveStatus: 'idle' | 'saving' | 'saved';
+  connected:  boolean;
 }
 
-export default function Navbar({ onSave, saveStatus }: Props) {
+export default function Navbar({ onSave, saveStatus, connected }: Props) {
   return (
     <nav className="navbar">
       <div className="nav-brand">
@@ -15,15 +16,25 @@ export default function Navbar({ onSave, saveStatus }: Props) {
       </div>
 
       <div className="nav-actions">
+        {/* Supabase 연결 상태 */}
+        <span className={`conn-badge ${connected ? 'online' : 'offline'}`}>
+          <i className={connected ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'} />
+          {connected ? 'Supabase 연결됨' : '연결 오류'}
+        </span>
+
+        {/* 동기화(새로고침) 버튼 */}
         <button
           className={`btn-save ${saveStatus !== 'idle' ? saveStatus : ''}`}
           onClick={onSave}
-          title="localStorage에 저장"
+          title="Supabase에서 최신 데이터 동기화"
+          disabled={saveStatus === 'saving'}
         >
-          {saveStatus === 'saved' ? (
-            <><i className="fa-solid fa-check" /> 저장됨</>
+          {saveStatus === 'saving' ? (
+            <><i className="fa-solid fa-arrows-rotate fa-spin" /> 동기화 중…</>
+          ) : saveStatus === 'saved' ? (
+            <><i className="fa-solid fa-check" /> 동기화 완료</>
           ) : (
-            <><i className="fa-solid fa-floppy-disk" /> 저장</>
+            <><i className="fa-solid fa-arrows-rotate" /> 동기화</>
           )}
         </button>
       </div>

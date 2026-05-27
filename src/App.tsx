@@ -1,19 +1,13 @@
 import { useState, useMemo } from 'react';
-import { useLocalStorage } from './hooks/useLocalStorage';
-import Navbar    from './components/Navbar';
-import TodoForm  from './components/TodoForm';
+import { useTodos } from './hooks/useTodos';
+import Navbar     from './components/Navbar';
+import TodoForm   from './components/TodoForm';
 import FilterTabs from './components/FilterTabs';
-import TodoItem  from './components/TodoItem';
-import AllView   from './components/AllView';
-import DateView  from './components/DateView';
-import StatsView from './components/StatsView';
-import type {
-  TodoItem as TodoItemType,
-  FilterType,
-  MainTab,
-  ViewTab,
-  Category,
-} from './types/todo';
+import TodoItem   from './components/TodoItem';
+import AllView    from './components/AllView';
+import DateView   from './components/DateView';
+import StatsView  from './components/StatsView';
+import type { FilterType, MainTab, ViewTab, Category } from './types/todo';
 
 const VIEW_TABS: { value: ViewTab; icon: string; text: string }[] = [
   { value: 'all',   icon: 'fa-solid fa-list',              text: '전체 목록' },
@@ -22,44 +16,29 @@ const VIEW_TABS: { value: ViewTab; icon: string; text: string }[] = [
 ];
 
 export default function App() {
-  const [todos, setTodos] = useLocalStorage<TodoItemType[]>('kdn-journal-todos', []);
+  const {
+    todos, loading, error,
+    addTodo, toggleTodo, deleteTodo, refetch,
+  } = useTodos();
+
   const [mainTab,    setMainTab]    = useState<MainTab>('write');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [viewTab,    setViewTab]    = useState<ViewTab>('all');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-  /* ── CRUD ── */
-  const addTodo = (title: string, category: Category) => {
-    const item: TodoItemType = {
-      id: `t-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      title,
-      completed: false,
-      category,
-      createdAt: new Date().toISOString(),
-    };
-    setTodos(prev => [item, ...prev]);
-  };
-
-  const toggleTodo = (id: string) => {
-    setTodos(prev =>
-      prev.map(t =>
-        t.id === id
-          ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : undefined }
-          : t
-      )
-    );
-  };
-
-  const deleteTodo = (id: string) => {
-    setTodos(prev => prev.filter(t => t.id !== id));
-  };
-
-  /* ── 저장 버튼 ── */
+  /* ── 저장(새로고침) ── */
   const handleSave = () => {
     setSaveStatus('saving');
-    setTimeout(() => setSaveStatus('saved'),  300);
-    setTimeout(() => setSaveStatus('idle'),  2200);
+    void refetch().then(() => {
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2200);
+    });
   };
+
+  /* ── CRUD 래퍼 (void 반환) ── */
+  const handleAdd    = (title: string, category: Category) => { void addTodo(title, category); };
+  const handleToggle = (id: string) => { void toggleTodo(id); };
+  const handleDelete = (id: string) => { void deleteTodo(id); };
 
   /* ── 필터 ── */
   const filteredTodos = useMemo(() => {
@@ -69,13 +48,26 @@ export default function App() {
   }, [todos, filterType]);
 
   const emptyMsg =
-    filterType === 'active'    ? '진행중인 할 일이 없습니다.' :
-    filterType === 'completed' ? '완료된 할 일이 없습니다.'   :
+    filterType === 'active'    ? '진행중인 할 일이 없습니다.'  :
+    filterType === 'completed' ? '완료된 할 일이 없습니다.'    :
     '할 일을 위에서 추가해보세요!';
 
   return (
     <>
-      <Navbar onSave={handleSave} saveStatus={saveStatus} />
+      <Navbar
+        onSave={handleSave}
+        saveStatus={saveStatus}
+        connected={!error}
+      />
+
+      {/* ── 에러 배너 ── */}
+      {error && (
+        <div className="error-banner">
+          <i className="fa-solid fa-circle-exclamation" />
+          <span>Supabase 연결 오류: {error}</span>
+          <button className="error-retry" onClick={handleSave}>재시도</button>
+        </div>
+      )}
 
       {/* ── 메인 탭 ── */}
       <div className="main-tabs">
@@ -98,19 +90,25 @@ export default function App() {
       <main className="main-content">
         <div className="container">
 
-          {/* ────────────── 일지 작성 ────────────── */}
-          {mainTab === 'write' && (
+          {/* ── 초기 로딩 ── */}
+          {loading && (
+            <div className="loading-screen">
+              <div className="loading-spinner" />
+              <p>Supabase에서 데이터를 불러오는 중…</p>
+            </div>
+          )}
+
+          {/* ── 일지 작성 ── */}
+          {!loading && mainTab === 'write' && (
             <div className="write-section">
 
-              {/* 할 일 추가 */}
               <div className="section-card">
                 <div className="card-header">
                   <h2><i className="fa-solid fa-circle-plus" /> 할 일 추가</h2>
                 </div>
-                <TodoForm onAdd={addTodo} />
+                <TodoForm onAdd={handleAdd} />
               </div>
 
-              {/* 할 일 목록 */}
               <div className="section-card">
                 <div className="card-header">
                   <h2><i className="fa-solid fa-list-ul" /> 할 일 목록</h2>
@@ -134,8 +132,8 @@ export default function App() {
                       <TodoItem
                         key={todo.id}
                         item={todo}
-                        onToggle={toggleTodo}
-                        onDelete={deleteTodo}
+                        onToggle={handleToggle}
+                        onDelete={handleDelete}
                       />
                     ))
                   )}
@@ -144,8 +142,8 @@ export default function App() {
             </div>
           )}
 
-          {/* ────────────── 일지 조회 ────────────── */}
-          {mainTab === 'view' && (
+          {/* ── 일지 조회 ── */}
+          {!loading && mainTab === 'view' && (
             <div className="view-section">
 
               <div className="view-tabs-bar">
@@ -161,8 +159,8 @@ export default function App() {
               </div>
 
               <div className="section-card">
-                {viewTab === 'all'   && <AllView   todos={todos} onToggle={toggleTodo} onDelete={deleteTodo} />}
-                {viewTab === 'date'  && <DateView  todos={todos} onToggle={toggleTodo} onDelete={deleteTodo} />}
+                {viewTab === 'all'   && <AllView   todos={todos} onToggle={handleToggle} onDelete={handleDelete} />}
+                {viewTab === 'date'  && <DateView  todos={todos} onToggle={handleToggle} onDelete={handleDelete} />}
                 {viewTab === 'stats' && <StatsView todos={todos} />}
               </div>
             </div>
@@ -173,8 +171,8 @@ export default function App() {
 
       <footer className="footer">
         <div className="container">
-          <i className="fa-solid fa-leaf" />
-          <strong>KDN 업무 일지</strong> · 한전KDN 미터링시스템부 · 풀스택 바이브코딩 실습
+          <i className="fa-solid fa-database" />
+          <strong>KDN 업무 일지</strong> · Supabase 연동 · 한전KDN 미터링시스템부
         </div>
       </footer>
     </>
